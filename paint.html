@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>Color Party</title>
+<link rel="stylesheet" href="shared/kid.css">
+</head>
+<body data-root="1">
+<canvas id="c"></canvas>
+<script src="shared/shell.js"></script>
+<script src="shared/core.js"></script>
+<script>
+// Color Party: pick a color on the side palette, then tap or drag over the picture to fill each part.
+// The picture comes from pictures/<slug>.json (?p=slug). Colour every part and a cheer plays, then the next picture opens.
+// Nothing can go wrong: undo, wipe and the rainbow color are all on the palette.
+
+const FW = 440, FH = 320, OX = -230, OY = -470; // picture frame in world units (picture-local 0..FW, 0..FH)
+const COLORS = ['#ff6b6b', '#ffa94d', '#ffe066', '#a9e34b', '#69db7c', '#38d9a9', '#4dabf7', '#748ffc', '#b197fc', '#ff8fc7', '#a9734a', '#868e96'];
+const RAINBOW = 12, ERASER = 13, UNDO = 14, NEXT = 15, SLOTS = 16, COLS = 2;
+const WHITE = '#ffffff';
+const scratch = document.createElement('canvas').getContext('2d'); // identity transform for hit tests
+const slug = Q.get('p') || 'house';
+const save = {
+  get: () => { try { return JSON.parse(localStorage.getItem('cp.save.' + slug)) || null; } catch (e) { return null; } },
+  set: (cols) => { try { localStorage.setItem('cp.save.' + slug, JSON.stringify(cols)); } catch (e) { /* storage blocked */ } },
+  done: () => { try { localStorage.setItem('cp.done.' + slug, '1'); } catch (e) { /* storage blocked */ } },
+};
+
+let pic = null, order = [], sel = 2, rainbowI = 0, introT = 0, celebrate = 0, dragFill = null, undo = [];
+const me = new Actor(P.ready);
+
+fetch('pictures/' + slug + '.json').then((r) => r.json()).then((j) => {
+  const saved = save.get();
+  pic = {
+    deco: (j.deco || []).map((d) => new Path2D(d)),
+    regions: j.regions.map((d, i) => ({ path: new Path2D(d), col: saved && saved[i] ? saved[i] : WHITE, anim: null })),
+  };
+  introT = 0;
+}).catch(() => { location.replace('index.html'); });
+fetch('pictures/index.json').then((r) => r.json()).then((l) => { order = l.map((e) => e.slug); }).catch(() => {});
+
+function nextSlug() {
+  const i = order.indexOf(slug);
+  return order.length ? order[(i + 1) % order.length] : slug;
+}
+function goNext() {
+  location.replace('paint.html?p=' + nextSlug() + (BOT ? '&bot' : ''));
+}
+const curCol = (r) => (r.anim ? r.anim.col : r.col);
+function persist() {
+  save.set(pic.regions.map((r) => curCol(r)));
+}
+function pickColor() {
+  if (sel === ERASER) return WHITE;
+  if (sel === RAINBOW) return COLORS[rainbowI++ % COLORS.length];
+  return COLORS[sel];
+}
+
+function hitRegion(x, y) {
+  const lx = x - OX, ly = y - OY;
+  if (lx < 0 || ly < 0 || lx > FW || ly > FH) return null;
+  for (let i = pic.regions.length - 1; i >= 0; i--) {
+    if (scratch.isPointInPath(pic.regions[i].path, lx, ly)) return pic.regions[i];
+  }
+  return null;
+}
+
+function fillAt(x, y) {
+  const r = hitRegion(x, y);
+  if (!r) return false;
+  const col = pickColor();
+  const cur = curCol(r);
+  if (cur === col) return false;
+  undo.push({ r, col: cur });
+  if (undo.length > 40) undo.shift();
+  r.col = cur;
+  r.anim = { x: x - OX, y: y - OY, t: 0, col };
+  SND.pop(Math.max(0, sel) + Math.floor(Math.random() * 3));
+  hiss(0.14, 0.1, 'bandpass', 1500, 700, 1, 0.1);
+  confetti(x, y, 3);
+  me.clear();
+  me.push({ pose: P.cheer, d: 0.14, ez: 'out' }, { pose: P.ready, d: 0.3 });
+  persist();
+  return true;
+}
+
+function undoOne() {
+  const u = undo.pop();
+  if (!u) {
+    SND.tok(0.4);
+    return;
+  }
+  u.r.anim = { x: FW / 2, y: FH / 2, t: 0, col: u.col };
+  note(2, 0.25, 0.12);
+  persist();
+}
+
+// Palette: two columns down the right edge of the screen.
+function palette() {
+  const R = screenRect();
+  const rows = SLOTS / COLS;
+  const slot = Math.min(60, (R.b - R.t - 70) / rows);
+  const w = slot * COLS + 14;
+  const cx = R.r - w / 2 - 6;
+  const top = (R.t + R.b) / 2 - (slot * rows) / 2;
+  return { slot, w, cx, top, rows, r: slot * 0.4, pos: (i) => [cx + (i % COLS - (COLS - 1) / 2) * slot, top + slot * (Math.floor(i / COLS) + 0.5)] };
+}
+function paletteHit(x, y) {
+  const p = palette();
+  if (x < p.cx - p.w / 2 - 6) return -1;
+  const col = Math.floor((x - (p.cx - (p.slot * COLS) / 2)) / p.slot);
+  const row = Math.floor((y - p.top) / p.slot);
+  if (col < 0 || col >= COLS || row < 0 || row >= p.rows) return -2;
+  return row * COLS + col;
+}
+
+function choose(i) {
+  if (i === NEXT) {
+    SND.whoosh();
+    note(5, 0.25, 0.12);
+    goNext();
+  } else if (i === UNDO) {
+    undoOne();
+    wobble.hit('pal' + i, 7);
+  } else {
+    sel = i;
+    note(i === ERASER ? 0 : i % 8, 0.3, 0.14);
+    wobble.hit('pal' + i, 7);
+  }
+}
+
+function drawSlot(i, p, on) {
+  const [px, py] = p.pos(i);
+  const s = (on ? 1.15 : 1) * (1 + wobble.get('pal' + i));
+  ctx.save();
+  ctx.translate(px, py);
+  ctx.scale(s, s);
+  ctx.beginPath();
+  ctx.arc(0, 0, p.r, 0, Math.PI * 2);
+  if (i < COLORS.length) {
+    inkShape(COLORS[i], on ? 4 : 2.4);
+  } else if (i === RAINBOW) {
+    inkShape('#ffffff', on ? 4 : 2.4);
+    for (let k = 0; k < 6; k++) {
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, p.r - 2, (k / 6) * Math.PI * 2, ((k + 1) / 6) * Math.PI * 2);
+      ctx.fillStyle = COLORS[(k * 2) % COLORS.length];
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.arc(0, 0, p.r, 0, Math.PI * 2);
+    ctx.lineWidth = on ? 4 : 2.4;
+    ctx.strokeStyle = COL.ink;
+    ctx.stroke();
+  } else if (i === ERASER) {
+    inkShape('#ffffff', on ? 4 : 2.4);
+    ctx.lineWidth = 2.6;
+    line(-p.r * 0.45, -p.r * 0.45, p.r * 0.45, p.r * 0.45);
+    line(-p.r * 0.45, p.r * 0.45, p.r * 0.45, -p.r * 0.45);
+  } else {
+    inkShape(i === UNDO ? '#c5f6fa' : '#fde68a', 2.4);
+    ctx.strokeStyle = COL.ink;
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    if (i === NEXT) {
+      ctx.moveTo(-p.r * 0.45, 0);
+      ctx.lineTo(p.r * 0.4, 0);
+      ctx.moveTo(p.r * 0.05, -p.r * 0.4);
+      ctx.lineTo(p.r * 0.45, 0);
+      ctx.lineTo(p.r * 0.05, p.r * 0.4);
+    } else {
+      ctx.arc(0, 0, p.r * 0.42, Math.PI * 0.9, Math.PI * 2.3);
+      ctx.moveTo(-p.r * 0.5, -p.r * 0.05);
+      ctx.lineTo(-p.r * 0.5, -p.r * 0.5);
+      ctx.moveTo(-p.r * 0.5, -p.r * 0.05);
+      ctx.lineTo(-p.r * 0.05, -p.r * 0.1);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+  if (on) {
+    ctx.beginPath();
+    ctx.arc(px, py, p.r * 1.15 + 5, 0, Math.PI * 2);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = COL.ink;
+    ctx.setLineDash([4, 5]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+kid({
+  view: { x0: -340, x1: 340, y0: -490, y1: 40, minW: 700, focusX: 40 },
+  setup() {},
+  key(code, isDown) {
+    if (!isDown) return false;
+    const m = /^Digit([1-9])$/.exec(code);
+    if (m) {
+      choose(Number(m[1]) - 1);
+      return true;
+    }
+    if (code === 'KeyZ') {
+      choose(UNDO);
+      return true;
+    }
+    if (code === 'KeyN') {
+      goNext();
+      return true;
+    }
+    return false;
+  },
+  down(x, y, id) {
+    const hit = paletteHit(x, y);
+    if (hit >= 0) {
+      choose(hit);
+      return;
+    }
+    if (hit === -2 || !pic) return;
+    dragFill = id;
+    if (!fillAt(x, y) && !hitRegion(x, y)) SND.tok(0.4);
+  },
+  move(x, y, id) {
+    if (pic && dragFill === id && paletteHit(x, y) === -1) fillAt(x, y);
+  },
+  up(x, y, id) {
+    if (dragFill === id) dragFill = null;
+  },
+  update(dt) {
+    me.update(dt);
+    if (!pic) return;
+    introT = Math.min(1, introT + dt * 2.2);
+    for (const r of pic.regions) {
+      if (r.anim) {
+        r.anim.t += dt * 2.6;
+        if (r.anim.t >= 1) {
+          r.col = r.anim.col;
+          r.anim = null;
+        }
+      }
+    }
+    if (!celebrate && dragFill === null && undo.length && pic.regions.every((r) => !r.anim && r.col !== WHITE)) {
+      celebrate = 3;
+      save.done();
+      SND.cheer();
+      confetti(OX + FW / 2, OY + FH / 2, 60);
+      kick(40);
+      me.clear();
+      me.push({ pose: P.cheer, d: 0.2, ez: 'out' }, { pose: P.leap, d: 0.3 }, { pose: P.cheer, d: 0.3 }, { pose: P.ready, d: 0.5 });
+    }
+    if (celebrate > 0) {
+      celebrate -= dt;
+      if (celebrate <= 0) goNext();
+    }
+  },
+  draw() {
+    groundLine();
+    if (pic) {
+      const k = 0.9 + 0.1 * EASE.out(introT);
+      ctx.save();
+      ctx.translate(OX + FW / 2, OY + FH / 2);
+      ctx.scale(k, k);
+      ctx.translate(-FW / 2, -FH / 2);
+      ctx.globalAlpha = Math.min(1, introT * 2);
+      ctx.save();
+      roundRect(0, 0, FW, FH, 18);
+      ctx.fillStyle = WHITE;
+      ctx.fill();
+      ctx.clip();
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      for (const r of pic.regions) {
+        ctx.fillStyle = r.col;
+        ctx.fill(r.path);
+        if (r.anim) {
+          ctx.save();
+          ctx.clip(r.path);
+          ctx.fillStyle = r.anim.col;
+          ctx.beginPath();
+          ctx.arc(r.anim.x, r.anim.y, 520 * EASE.out(r.anim.t), 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+        ctx.strokeStyle = COL.ink;
+        ctx.lineWidth = 3;
+        ctx.stroke(r.path);
+      }
+      for (const d of pic.deco) {
+        ctx.strokeStyle = COL.ink;
+        ctx.lineWidth = 3;
+        ctx.stroke(d);
+      }
+      ctx.restore();
+      roundRect(0, 0, FW, FH, 18);
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = COL.ink;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    const brushCol = sel === ERASER ? '#f1f3f5' : sel === RAINBOW ? COLORS[Math.floor(clock * 6) % COLORS.length] : COLORS[sel];
+    drawFigure(me, OX + 60, 8, Math.sin(clock * 2) * 1.2, {
+      scale: 1.0,
+      over: (J) => {
+        ctx.save();
+        ctx.translate(J.handF[0], J.handF[1]);
+        ctx.rotate(-0.8);
+        ctx.strokeStyle = '#c98a4b';
+        ctx.lineWidth = 3.4;
+        ctx.lineCap = 'round';
+        line(0, 0, 0, -24);
+        roundRect(-4.5, -36, 9, 14, 4);
+        inkShape(brushCol, 1.6);
+        ctx.restore();
+      },
+    });
+
+    const p = palette();
+    roundRect(p.cx - p.w / 2, p.top - 6, p.w, p.slot * p.rows + 12, 16);
+    inkShape('#ffffff', 2.4);
+    for (let i = 0; i < SLOTS; i++) drawSlot(i, p, i === sel);
+  },
+});
+</script>
+</body>
+</html>

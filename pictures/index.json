@@ -1,0 +1,26 @@
+[
+ {
+  "slug": "caterpillar",
+  "name": "Caterpillar",
+  "pack": "animals",
+  "color": "#ffe3e3"
+ },
+ {
+  "slug": "fish",
+  "name": "Fish",
+  "pack": "sea",
+  "color": "#d0ebff"
+ },
+ {
+  "slug": "house",
+  "name": "House",
+  "pack": "home",
+  "color": "#d3f9d8"
+ },
+ {
+  "slug": "rocket",
+  "name": "Rocket",
+  "pack": "space",
+  "color": "#e5dbff"
+ }
+]
