@@ -1,8 +1,44 @@
 [
  {
+  "slug": "bird",
+  "name": "Bird",
+  "pack": "animals",
+  "color": "#d0ebff"
+ },
+ {
+  "slug": "butterfly",
+  "name": "Butterfly",
+  "pack": "animals",
+  "color": "#f3d9fa"
+ },
+ {
+  "slug": "cat",
+  "name": "Cat",
+  "pack": "animals",
+  "color": "#ffe8cc"
+ },
+ {
   "slug": "caterpillar",
   "name": "Caterpillar",
   "pack": "animals",
+  "color": "#ffe3e3"
+ },
+ {
+  "slug": "dog",
+  "name": "Dog",
+  "pack": "animals",
+  "color": "#ffe3e3"
+ },
+ {
+  "slug": "elephant",
+  "name": "Elephant",
+  "pack": "animals",
+  "color": "#e7ecf3"
+ },
+ {
+  "slug": "crab",
+  "name": "Crab",
+  "pack": "sea",
   "color": "#ffe3e3"
  },
  {
@@ -12,15 +48,195 @@
   "color": "#d0ebff"
  },
  {
+  "slug": "octopus",
+  "name": "Octopus",
+  "pack": "sea",
+  "color": "#f3d9fa"
+ },
+ {
+  "slug": "turtle",
+  "name": "Turtle",
+  "pack": "sea",
+  "color": "#d3f9d8"
+ },
+ {
+  "slug": "whale",
+  "name": "Whale",
+  "pack": "sea",
+  "color": "#d0ebff"
+ },
+ {
+  "slug": "boat",
+  "name": "Boat",
+  "pack": "vehicles",
+  "color": "#c5f6fa"
+ },
+ {
+  "slug": "bus",
+  "name": "Bus",
+  "pack": "vehicles",
+  "color": "#fff3bf"
+ },
+ {
+  "slug": "car",
+  "name": "Car",
+  "pack": "vehicles",
+  "color": "#ffd8d8"
+ },
+ {
+  "slug": "digger",
+  "name": "Digger",
+  "pack": "vehicles",
+  "color": "#ffe8cc"
+ },
+ {
+  "slug": "plane",
+  "name": "Plane",
+  "pack": "vehicles",
+  "color": "#e7f5ff"
+ },
+ {
+  "slug": "train",
+  "name": "Train",
+  "pack": "vehicles",
+  "color": "#d0ebff"
+ },
+ {
+  "slug": "flower",
+  "name": "Flower Garden",
+  "pack": "home",
+  "color": "#ffd6e7"
+ },
+ {
   "slug": "house",
   "name": "House",
   "pack": "home",
   "color": "#d3f9d8"
  },
  {
+  "slug": "suncloud",
+  "name": "Sunny Day",
+  "pack": "home",
+  "color": "#fff3bf"
+ },
+ {
+  "slug": "tree",
+  "name": "Tree",
+  "pack": "home",
+  "color": "#d8f5a2"
+ },
+ {
+  "slug": "umbrella",
+  "name": "Rainy Umbrella",
+  "pack": "home",
+  "color": "#d0ebff"
+ },
+ {
+  "slug": "apple",
+  "name": "Apple",
+  "pack": "food",
+  "color": "#ffc9c9"
+ },
+ {
+  "slug": "banana",
+  "name": "Bananas",
+  "pack": "food",
+  "color": "#fff3bf"
+ },
+ {
+  "slug": "cake",
+  "name": "Birthday Cake",
+  "pack": "food",
+  "color": "#ffe8cc"
+ },
+ {
+  "slug": "icecream",
+  "name": "Ice Cream",
+  "pack": "food",
+  "color": "#ffe3f1"
+ },
+ {
+  "slug": "pizza",
+  "name": "Pizza",
+  "pack": "food",
+  "color": "#ffe0b3"
+ },
+ {
+  "slug": "alien",
+  "name": "Alien",
+  "pack": "space",
+  "color": "#d3f9d8"
+ },
+ {
+  "slug": "moon",
+  "name": "Moon",
+  "pack": "space",
+  "color": "#fff3bf"
+ },
+ {
+  "slug": "planet",
+  "name": "Planet",
+  "pack": "space",
+  "color": "#e5dbff"
+ },
+ {
   "slug": "rocket",
   "name": "Rocket",
   "pack": "space",
   "color": "#e5dbff"
+ },
+ {
+  "slug": "diplodocus",
+  "name": "Diplodocus",
+  "pack": "dinosaurs",
+  "color": "#fff3bf"
+ },
+ {
+  "slug": "egg",
+  "name": "Dino Egg",
+  "pack": "dinosaurs",
+  "color": "#fff0d6"
+ },
+ {
+  "slug": "trex",
+  "name": "T-Rex",
+  "pack": "dinosaurs",
+  "color": "#d3f9d8"
+ },
+ {
+  "slug": "ball",
+  "name": "Kick",
+  "pack": "friends",
+  "color": "#d3f9d8"
+ },
+ {
+  "slug": "bike",
+  "name": "Bike",
+  "pack": "friends",
+  "color": "#ffec99"
+ },
+ {
+  "slug": "dance",
+  "name": "Dance",
+  "pack": "friends",
+  "color": "#e5dbff"
+ },
+ {
+  "slug": "hop",
+  "name": "Hop",
+  "pack": "friends",
+  "color": "#d0ebff"
+ },
+ {
+  "slug": "kite",
+  "name": "Kite",
+  "pack": "friends",
+  "color": "#c5f6fa"
+ },
+ {
+  "slug": "swim",
+  "name": "Swim",
+  "pack": "friends",
+  "color": "#a5d8ff"
  }
 ]
